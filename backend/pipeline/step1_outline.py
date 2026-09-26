@@ -149,6 +149,34 @@ class OutlineExtractor:
             解析后的大纲结构
         """
         outlines = []
+
+        # Category-specific prompts (for example, entertainment) request JSON,
+        # while the default prompt requests a numbered Markdown outline.
+        try:
+            parsed_response = self.llm_client.parse_json_response(response)
+            if isinstance(parsed_response, dict):
+                parsed_response = parsed_response.get("items") or parsed_response.get("outlines")
+            if isinstance(parsed_response, list):
+                for item in parsed_response:
+                    if not isinstance(item, dict) or not str(item.get("title", "")).strip():
+                        continue
+                    subtopics = item.get("subtopics")
+                    if not isinstance(subtopics, list):
+                        subtopics = []
+                    outlines.append({
+                        "title": str(item["title"]).strip(),
+                        "subtopics": [
+                            str(subtopic).strip()
+                            for subtopic in subtopics
+                            if str(subtopic).strip() and len(str(subtopic).strip()) <= 200
+                        ],
+                        "chunk_index": chunk_index,
+                    })
+                if outlines:
+                    return outlines
+        except Exception as e:
+            logger.debug(f"大纲响应不是JSON，回退到Markdown解析: {e}")
+
         lines = response.split('\n')
         current_outline = None
         
