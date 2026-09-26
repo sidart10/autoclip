@@ -58,7 +58,13 @@ class LLMClient:
             logger.error(f"LLM调用失败: {str(e)}")
             raise
     
-    def call_with_retry(self, prompt: str, input_data: Any = None, max_retries: int = 3) -> str:
+    def call_with_retry(
+        self,
+        prompt: str,
+        input_data: Any = None,
+        max_retries: int = 3,
+        **kwargs,
+    ) -> str:
         """
         带重试机制的API调用
         
@@ -71,7 +77,12 @@ class LLMClient:
             模型响应文本
         """
         try:
-            return self.llm_manager.call_with_retry(prompt, input_data, max_retries)
+            return self.llm_manager.call_with_retry(
+                prompt,
+                input_data,
+                max_retries,
+                **kwargs,
+            )
         except Exception as e:
             logger.error(f"LLM重试调用失败: {str(e)}")
             raise

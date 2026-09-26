@@ -15,6 +15,41 @@ from ..core.shared_config import PROMPT_FILES, METADATA_DIR
 
 logger = logging.getLogger(__name__)
 
+OLLAMA_TIMELINE_RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "timeline",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "outline": {"type": "string"},
+                            "content": {"type": "array", "items": {"type": "string"}},
+                            "start_time": {
+                                "type": "string",
+                                "pattern": r"^\d{2}:\d{2}:\d{2},\d{3}$",
+                            },
+                            "end_time": {
+                                "type": "string",
+                                "pattern": r"^\d{2}:\d{2}:\d{2},\d{3}$",
+                            },
+                        },
+                        "required": ["outline", "content", "start_time", "end_time"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "required": ["items"],
+            "additionalProperties": False,
+        },
+    },
+}
+
 class TimelineExtractor:
     """从大纲和SRT字幕中提取精确时间线"""
     
@@ -125,6 +160,9 @@ class TimelineExtractor:
                         "outline": llm_input_outlines,  # 使用干净的数据
                         "srt_text": srt_text_for_prompt
                     }
+                    call_kwargs = {}
+                    if self.llm_client.get_current_provider_info().get("provider") == "ollama":
+                        call_kwargs["response_format"] = OLLAMA_TIMELINE_RESPONSE_FORMAT
                     
                     # 调用LLM获取原始响应，带重试机制
                     parsed_items = None
@@ -132,7 +170,11 @@ class TimelineExtractor:
                     
                     for retry_count in range(max_parse_retries + 1):
                         try:
-                            raw_response = self.llm_client.call_with_retry(timeline_prompt, input_data)
+                            raw_response = self.llm_client.call_with_retry(
+                                timeline_prompt,
+                                input_data,
+                                **call_kwargs,
+                            )
                             
                             if not raw_response:
                                 logger.warning(f"  > 块 {chunk_index} LLM响应为空，跳过")
@@ -240,6 +282,8 @@ class TimelineExtractor:
         try:
             # 尝试解析JSON
             parsed_response = self.llm_client.parse_json_response(response)
+            if isinstance(parsed_response, dict) and isinstance(parsed_response.get("items"), list):
+                parsed_response = parsed_response["items"]
             
             # 验证JSON结构
             if not self.llm_client._validate_json_structure(parsed_response):
