@@ -1,0 +1,40 @@
+services:
+  autoclip:
+    # The bundled frontend is served by FastAPI. Port 3000 is already occupied,
+    # so expose the same app on both 8000 (API/docs) and 3001 (UI bookmark).
+    ports: !override
+      - "8000:8000"
+      - "3001:8000"
+    # Docker Desktop cannot bind-mount this macOS Desktop path reliably.
+    # Named volumes keep app data persistent without crossing that boundary.
+    volumes: !override
+      - autoclip_data:/app/data
+      - autoclip_logs:/app/logs
+      - autoclip_uploads:/app/uploads
+
+  celery-worker:
+    volumes: !override
+      - autoclip_data:/app/data
+      - autoclip_logs:/app/logs
+      - autoclip_uploads:/app/uploads
+    healthcheck:
+      disable: true
+
+  celery-beat:
+    volumes: !override
+      - autoclip_data:/app/data
+      - autoclip_logs:/app/logs
+    healthcheck:
+      disable: true
+
+  flower:
+    # Keep the optional worker monitor available in the full local setup.
+    ports: !override
+      - "5555:5555"
+    healthcheck:
+      disable: true
+
+volumes:
+  autoclip_data:
+  autoclip_logs:
+  autoclip_uploads:

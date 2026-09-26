@@ -28,6 +28,7 @@ pydantic-settings==2.15.0
 # --- task queue ---
 celery[redis]==5.6.3
 redis==6.4.0
+flower==2.2.0
 
 # --- http clients ---
 requests==2.34.2
@@ -45,6 +46,7 @@ yt-dlp==2026.8.19
 pysrt==1.1.2
 psutil==7.2.2
 pytz==2026.3.post1
+faster-whisper==1.2.1
 
 # --- LLM provider SDKs ---
 # Required for the AI clipping pipeline. These used to live only in

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "app_id": "autoclip",
+  "name": "AutoClip",
+  "owner_area": "content-creation",
+  "status": "active",
+  "visibility": "public",
+  "stack": ["Python", "FastAPI", "React", "TypeScript", "Docker"],
+  "purpose": "Locally run AI-assisted video clipping and highlight generation from YouTube, Bilibili, and uploaded video files."
+}

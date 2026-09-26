@@ -4,9 +4,13 @@
 """
 import logging
 import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api.v1 import api_router
 from backend.api.v1.health import router as health_router
@@ -16,6 +20,18 @@ from backend.core.config import get_logging_config, get_api_key
 from backend.core.error_middleware import global_exception_handler
 
 logger = logging.getLogger(__name__)
+
+
+class SPAStaticFiles(StaticFiles):
+    """Serve index.html for browser routes while preserving API 404s."""
+
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404 or path.startswith("api/"):
+                raise
+            return await super().get_response("index.html", scope)
 
 def create_app(mode: str = "web") -> FastAPI:
     """
@@ -170,6 +186,20 @@ def create_app(mode: str = "web") -> FastAPI:
             return JSONResponse(
                 status_code=500, 
                 content={"status": "error", "detail": str(e)}
+            )
+
+    if mode == "web":
+        frontend_dir = Path(
+            os.getenv(
+                "AUTOCLIP_FRONTEND_DIR",
+                Path(__file__).resolve().parent.parent / "frontend" / "dist",
+            )
+        )
+        if (frontend_dir / "index.html").is_file():
+            app.mount(
+                "/",
+                SPAStaticFiles(directory=frontend_dir, html=True),
+                name="frontend",
             )
     
     return app

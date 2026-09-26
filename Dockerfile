@@ -58,8 +58,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
-# 创建非root用户
-RUN groupadd -r autoclip && useradd -r -g autoclip autoclip
+# 创建非root用户及其可写 home。Hugging Face/Xet 等运行时会在 $HOME 下写缓存与日志。
+RUN groupadd -r autoclip && useradd -r -m -g autoclip autoclip
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y \
